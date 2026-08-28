@@ -1,60 +1,28 @@
 <?php
-declare(strict_types=1);
 
+declare(strict_types=1);
 
 // Exibe uma mensagem
 function exibirMensagem(string $mensagem): void
 {
-    echo $mensagem . PHP_EOL;
+    echo $mensagem;
 }
 
-
-// Valida o e-mail
-function validarEmail(string $email): bool
-{
-    $email = trim($email);
-
-    if ($email === "") {
-        return false;
-    } elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
-        return false;
-    } else {
-        return true;
-    }
-}
-
-
-// Busca um cliente pelo nome
-function buscarCliente(string $nome, array $clientes): ?array
+// Formata o nome
+function formatarNome(string $nome): string
 {
     $nome = trim($nome);
 
-    foreach ($clientes as $cliente) {
-        if (strtolower(trim($cliente["nome"])) === strtolower($nome)) {
-            return $cliente;
-        }
-    }
-
-    return null;
+    return ucwords(strtolower($nome));
 }
 
-
-// Calcula a média dos contratos
-function calcularMedia(array $clientes): float
+// Remove os caracteres de formatação do CPF
+function limparCPF(string $cpf): string
 {
-    if (count($clientes) === 0) {
-        return 0.0;
-    }
+    $cpf = trim($cpf);
 
-    $soma = 0.0;
-
-    foreach ($clientes as $cliente) {
-        $soma += $cliente["contrato"];
-    }
-
-    return $soma / count($clientes);
+    return str_replace([".", "-"], "", $cpf);
 }
-
 
 // Valida o nome
 function validarNome(string $nome): bool
@@ -70,11 +38,10 @@ function validarNome(string $nome): bool
     }
 }
 
-
 // Valida o CPF
-function validarCpf(string $cpf): bool
+function validarCPF(string $cpf): bool
 {
-    $cpf = str_replace([".", "-"], "", trim($cpf));
+    $cpf = limparCPF($cpf);
 
     if ($cpf === "") {
         return false;
@@ -85,8 +52,21 @@ function validarCpf(string $cpf): bool
     }
 }
 
+// Valida o e-mail
+function validarEmail(string $email): bool
+{
+    $email = trim($email);
 
-// Valida o contrato
+    if ($email === "") {
+        return false;
+    } elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+        return false;
+    } else {
+        return true;
+    }
+}
+
+// Valida o valor do contrato
 function validarContrato(float $contrato): bool
 {
     if ($contrato <= 0) {
@@ -98,8 +78,27 @@ function validarContrato(float $contrato): bool
     }
 }
 
+// Formata o valor como moeda brasileira
+function formatarMoeda(float $valor): string
+{
+    return "R$ " . number_format($valor, 2, ",", ".");
+}
 
-// Cadastra um cliente
+// Busca um cliente pelo nome
+function buscarCliente(array $clientes, string $nome): ?array
+{
+    $nome = formatarNome($nome);
+
+    foreach ($clientes as $cliente) {
+        if (formatarNome($cliente["nome"]) === $nome) {
+            return $cliente;
+        }
+    }
+
+    return null;
+}
+
+// Cadastra um novo cliente
 function cadastrarCliente(
     array &$clientes,
     string $nome,
@@ -108,27 +107,20 @@ function cadastrarCliente(
     float $contrato
 ): ?array {
 
-    $nome = trim($nome);
-    $nome = ucwords(strtolower($nome));
-
-    $email = trim($email);
-
-    $cpf = str_replace([".", "-"], "", trim($cpf));
-
     if (!validarNome($nome)) {
         return null;
     } elseif (!validarEmail($email)) {
         return null;
-    } elseif (!validarCpf($cpf)) {
+    } elseif (!validarCPF($cpf)) {
         return null;
     } elseif (!validarContrato($contrato)) {
         return null;
     } else {
 
         $cliente = [
-            "nome" => $nome,
-            "cpf" => $cpf,
-            "email" => $email,
+            "nome" => formatarNome($nome),
+            "cpf" => limparCPF($cpf),
+            "email" => trim($email),
             "contrato" => $contrato,
             "ativo" => true
         ];
@@ -139,42 +131,50 @@ function cadastrarCliente(
     }
 }
 
-
-// Soma os contratos ativos
-function somaContratosAtivos(array $clientes): float
+// Calcula a soma dos contratos ativos
+function calcularTotalContratosAtivos(array $clientes): float
 {
-    $soma = 0.0;
+    $total = 0.0;
 
     foreach ($clientes as $cliente) {
         if ($cliente["ativo"] === true) {
-            $soma += $cliente["contrato"];
+            $total += $cliente["contrato"];
         }
     }
 
-    return $soma;
+    return $total;
 }
 
+// Calcula a média dos contratos
+function calcularMediaContratos(array $clientes): float
+{
+    if (count($clientes) === 0) {
+        return 0.0;
+    }
+
+    $soma = 0.0;
+
+    foreach ($clientes as $cliente) {
+        $soma += $cliente["contrato"];
+    }
+
+    return $soma / count($clientes);
+}
 
 // Aplica reajuste usando passagem por referência
-function aplicarReajuste(
-    array &$cliente,
-    float $percentual
-): void {
-
-    $cliente["contrato"] +=
-        $cliente["contrato"] * ($percentual / 100);
+function aplicarReajuste(float &$contrato, float $percentual): void
+{
+    $contrato += $contrato * ($percentual / 100);
 }
 
-
-// Quantidade total de clientes
-function quantidadeTotalClientes(array $clientes): int
+// Conta a quantidade de clientes
+function contarClientes(array $clientes): int
 {
     return count($clientes);
 }
 
-
-// Quantidade de clientes ativos
-function quantidadeClientesAtivos(array $clientes): int
+// Conta a quantidade de clientes ativos
+function contarClientesAtivos(array $clientes): int
 {
     $quantidade = 0;
 
@@ -187,8 +187,7 @@ function quantidadeClientesAtivos(array $clientes): int
     return $quantidade;
 }
 
-
-// Maior contrato
+// Encontra o maior contrato
 function maiorContrato(array $clientes): float
 {
     if (count($clientes) === 0) {
