@@ -1,6 +1,6 @@
 # Projeto-Central-de-Atendimento
 
-## Aqui vou relatar os passos que form feito!!
+## Aqui vou relatar os passos que foram feito!!
 
 Projeto PHP
 Sobre o projeto
